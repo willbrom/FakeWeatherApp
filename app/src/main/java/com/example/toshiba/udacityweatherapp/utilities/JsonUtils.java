@@ -1,14 +1,8 @@
 package com.example.toshiba.udacityweatherapp.utilities;
 
-import android.util.Log;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
-/**
- * Created by TOSHIBA on 8/20/2017.
- */
 
 public class JsonUtils {
 

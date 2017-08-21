@@ -3,13 +3,15 @@ package com.example.toshiba.udacityweatherapp;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.util.Log;
+import android.support.v7.widget.LinearLayoutManager;
+import android.support.v7.widget.RecyclerView;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.example.toshiba.udacityweatherapp.utilities.JsonUtils;
 import com.example.toshiba.udacityweatherapp.utilities.NetworkUtils;
@@ -17,20 +19,27 @@ import com.example.toshiba.udacityweatherapp.utilities.NetworkUtils;
 import java.io.IOException;
 import java.net.URL;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements WeatherDataAdapter.ListItemClickListener {
 
-    TextView weatherDataTextView;
-    TextView errorMessageTextView;
-    ProgressBar progressBar;
+    private TextView errorMessageTextView;
+    private ProgressBar progressBar;
+    private RecyclerView recyclerView;
+    private WeatherDataAdapter dataAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        weatherDataTextView = (TextView) findViewById(R.id.tv_weather_data);
         errorMessageTextView = (TextView) findViewById(R.id.tv_error_message);
         progressBar = (ProgressBar) findViewById(R.id.pb_progress_bar);
+        recyclerView = (RecyclerView) findViewById(R.id.rv_weather_list);
+        dataAdapter = new WeatherDataAdapter(this);
+        LinearLayoutManager layoutManager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
+
+        recyclerView.setLayoutManager(layoutManager);
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setAdapter(dataAdapter);
 
         loadWeatherData();
     }
@@ -42,16 +51,21 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showWeatherData() {
-        weatherDataTextView.setVisibility(View.VISIBLE);
+        recyclerView.setVisibility(View.VISIBLE);
         errorMessageTextView.setVisibility(View.INVISIBLE);
     }
 
     private void showErrorMessage() {
         errorMessageTextView.setVisibility(View.VISIBLE);
-        weatherDataTextView.setVisibility(View.INVISIBLE);
+        recyclerView.setVisibility(View.INVISIBLE);
     }
 
-    public class FetchWeatherTask extends AsyncTask<URL, Void, String[]> {
+    @Override
+    public void itemClickListener(String weatherAtPosition) {
+        Toast.makeText(MainActivity.this, weatherAtPosition , Toast.LENGTH_SHORT).show();
+    }
+
+    class FetchWeatherTask extends AsyncTask<URL, Void, String[]> {
 
         @Override
         protected void onPreExecute() {
@@ -79,9 +93,7 @@ public class MainActivity extends AppCompatActivity {
             progressBar.setVisibility(View.INVISIBLE);
 
             if (strings != null) {
-                for (String s : strings) {
-                    weatherDataTextView.append(s + "\n\n\n");
-                }
+                dataAdapter.setWeatherData(strings);
             } else {
                 showErrorMessage();
             }
@@ -100,7 +112,7 @@ public class MainActivity extends AppCompatActivity {
         int id = item.getItemId();
 
         if (id == R.id.action_refresh) {
-            weatherDataTextView.setText("");
+            dataAdapter.setWeatherData(null);
             loadWeatherData();
             return true;
         }
