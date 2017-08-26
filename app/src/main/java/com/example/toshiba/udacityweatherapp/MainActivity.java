@@ -1,6 +1,9 @@
 package com.example.toshiba.udacityweatherapp;
 
-import android.os.AsyncTask;
+import android.content.Intent;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.AsyncTaskLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
@@ -11,15 +14,17 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.example.toshiba.udacityweatherapp.utilities.JsonUtils;
 import com.example.toshiba.udacityweatherapp.utilities.NetworkUtils;
 
-import java.io.IOException;
 import java.net.URL;
 
-public class MainActivity extends AppCompatActivity implements WeatherDataAdapter.ListItemClickListener {
+public class MainActivity extends AppCompatActivity implements WeatherDataAdapter.ListItemClickListener,
+        LoaderManager.LoaderCallbacks<String[]> {
+
+    private static final int LOADER_NUM = 11;
+    private static final String URL_EXTRA = "Url_Extra";
 
     private TextView errorMessageTextView;
     private ProgressBar progressBar;
@@ -47,7 +52,19 @@ public class MainActivity extends AppCompatActivity implements WeatherDataAdapte
     private void loadWeatherData() {
         showWeatherData();
         URL url = NetworkUtils.getUrl("94042,USA");
-        new FetchWeatherTask().execute(url);
+        String urlToString = url.toString();
+
+        Bundle bundle = new Bundle();
+        bundle.putString(URL_EXTRA, urlToString);
+
+        LoaderManager loaderManager = getSupportLoaderManager();
+        Loader<String[]> loader = loaderManager.getLoader(LOADER_NUM);
+
+        if (loader == null) {
+            loaderManager.initLoader(LOADER_NUM, bundle, this);
+        } else {
+            loaderManager.restartLoader(LOADER_NUM, bundle, this);
+        }
     }
 
     private void showWeatherData() {
@@ -62,42 +79,65 @@ public class MainActivity extends AppCompatActivity implements WeatherDataAdapte
 
     @Override
     public void itemClickListener(String weatherAtPosition) {
-        Toast.makeText(MainActivity.this, weatherAtPosition , Toast.LENGTH_SHORT).show();
+        Intent intent = new Intent(MainActivity.this, DetailActivity.class);
+        intent.putExtra(Intent.EXTRA_TEXT, weatherAtPosition);
+        startActivity(intent);
     }
 
-    class FetchWeatherTask extends AsyncTask<URL, Void, String[]> {
+    @Override
+    public Loader<String[]> onCreateLoader(int id, final Bundle args) {
+        return new AsyncTaskLoader<String[]>(this) {
 
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            progressBar.setVisibility(View.VISIBLE);
-        }
-
-        @Override
-        protected String[] doInBackground(URL... urls) {
-            URL url = urls[0];
             String[] weatherData = null;
 
-            try {
-                String getJsonString = NetworkUtils.getHttpResponse(url);
-                weatherData = JsonUtils.getRequiredData(getJsonString);
-            } catch (IOException e) {
-                e.printStackTrace();
+            @Override
+            protected void onStartLoading() {
+                if (args == null)
+                    return;
+
+                if (weatherData != null) {
+                    deliverResult(weatherData);
+                } else {
+                    progressBar.setVisibility(View.VISIBLE);
+                    forceLoad();
+                }
             }
 
-            return weatherData;
-        }
+            @Override
+            public String[] loadInBackground() {
+                String getUrl = args.getString(URL_EXTRA);
 
-        @Override
-        protected void onPostExecute(String[] strings) {
-            progressBar.setVisibility(View.INVISIBLE);
-
-            if (strings != null) {
-                dataAdapter.setWeatherData(strings);
-            } else {
-                showErrorMessage();
+                try {
+                    URL url = new URL(getUrl);
+                    String getJson = NetworkUtils.getHttpResponse(url);
+                    return JsonUtils.getRequiredData(getJson);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return null;
+                }
             }
+
+            @Override
+            public void deliverResult(String[] data) {
+                weatherData = data;
+                super.deliverResult(data);
+            }
+        };
+    }
+
+    @Override
+    public void onLoadFinished(Loader<String[]> loader, String[] data) {
+        progressBar.setVisibility(View.INVISIBLE);
+
+        if (data != null) {
+            dataAdapter.setWeatherData(data);
+        } else {
+            showErrorMessage();
         }
+    }
+
+    @Override
+    public void onLoaderReset(Loader<String[]> loader) {
     }
 
     @Override

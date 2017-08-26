@@ -9,20 +9,17 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Scanner;
 
-/**
- * Created by TOSHIBA on 8/20/2017.
- */
 
 public class NetworkUtils {
 
     private final static String BASE_URL = "https://andfun-weather.udacity.com/weather";
     private final static String PARAM_QUERY = "q";
-    final static String FORMAT_PARAM = "mode";
-    final static String UNITS_PARAM = "units";
-    final static String DAYS_PARAM = "cnt";
+    private final static String FORMAT_PARAM = "mode";
+    private final static String UNITS_PARAM = "units";
+    private final static String DAYS_PARAM = "cnt";
     private static final String format = "json";
     private static final String units = "metric";
-    final static int numDays = 14;
+    private final static int numDays = 14;
 
     public static URL getUrl(String queryString) {
         Uri uri = Uri.parse(BASE_URL).buildUpon()
